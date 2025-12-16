@@ -28,6 +28,8 @@ function initializeChat(conversationId, userId) {
             updateUserStatus(data.is_online);
         } else if (data.type === 'read_receipt') {
             markMessageAsRead(data.message_id);
+        } else if (data.type === 'incoming_call') {
+            handleIncomingCall(data);
         }
     };
 
@@ -191,6 +193,17 @@ function initiateCall(userId) {
             .then(response => response.json())
             .then(data => {
                 currentCallId = data.call_id;
+
+                // Notify the other user via WebSocket
+                if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                    chatSocket.send(JSON.stringify({
+                        'type': 'incoming_call',
+                        'call_id': data.call_id,
+                        'caller_username': data.caller_username // Assuming backend sends this
+                    }));
+                }
+
+                // Start the call
                 startCall(data.call_id);
             })
             .catch(error => {
@@ -201,6 +214,74 @@ function initiateCall(userId) {
     } else {
         alert('📞 Voice call feature is ready! Make sure call.js is loaded.');
     }
+}
+
+function handleIncomingCall(data) {
+    // Show incoming call UI
+    const callUI = document.createElement('div');
+    callUI.id = 'incoming-call-ui';
+    callUI.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #00d9a3 0%, #00b894 100%);
+        padding: 2rem;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        text-align: center;
+        min-width: 300px;
+        animation: popIn 0.3s ease;
+    `;
+
+    callUI.innerHTML = `
+        <div style="color: white;">
+            <div style="font-size: 3rem; margin-bottom: 1rem; animation: bounce 1s ease infinite;">📞</div>
+            <h3 style="margin: 0 0 0.5rem 0;">${data.caller_username}</h3>
+            <p style="margin: 0 0 1.5rem 0; opacity: 0.9;">is calling you...</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="acceptCall(${data.call_id})" class="btn btn-success" style="flex: 1;">
+                    ✅ Accept
+                </button>
+                <button onclick="rejectCall(${data.call_id})" class="btn btn-danger" style="flex: 1;">
+                    ❌ Reject
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(callUI);
+
+    // Play ringing sound (optional)
+    // const audio = new Audio('/static/chat/sounds/ringtone.mp3');
+    // audio.loop = true;
+    // audio.play();
+}
+
+function acceptCall(callId) {
+    // Remove incoming call UI
+    const incomingCallUI = document.getElementById('incoming-call-ui');
+    if (incomingCallUI) {
+        incomingCallUI.remove();
+    }
+
+    // Start the call
+    if (typeof startCall === 'function') {
+        showCallUI('Connecting...');
+        startCall(callId);
+    }
+}
+
+function rejectCall(callId) {
+    // Remove incoming call UI
+    const incomingCallUI = document.getElementById('incoming-call-ui');
+    if (incomingCallUI) {
+        incomingCallUI.remove();
+    }
+
+    // Optionally notify the caller
+    alert('Call rejected');
 }
 
 function showCallUI(status) {
@@ -241,5 +322,10 @@ function hideCallUI() {
     if (callUI) {
         callUI.style.display = 'none';
     }
-}
 
+
+    const incomingCallUI = document.getElementById('incoming-call-ui');
+    if (incomingCallUI) {
+        incomingCallUI.remove();
+    }
+}

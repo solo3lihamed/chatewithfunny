@@ -104,6 +104,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'reader_id': self.user.id
                 }
             )
+        
+        elif message_type == 'incoming_call':
+            # Notify about incoming call
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'incoming_call_notification',
+                    'call_id': data.get('call_id'),
+                    'caller_id': self.user.id,
+                    'caller_username': self.user.username
+                }
+            )
     
     async def chat_message(self, event):
         # Send message to WebSocket
@@ -142,6 +154,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'message_id': event['message_id'],
             'reader_id': event['reader_id']
         }))
+    
+    async def incoming_call_notification(self, event):
+        # Send incoming call notification
+        if event['caller_id'] != self.user.id:
+            await self.send(text_data=json.dumps({
+                'type': 'incoming_call',
+                'call_id': event['call_id'],
+                'caller_id': event['caller_id'],
+                'caller_username': event['caller_username']
+            }))
     
     @database_sync_to_async
     def save_message(self, content):

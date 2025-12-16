@@ -323,9 +323,9 @@ function hideCallUI() {
         callUI.style.display = 'none';
     }
 
-
     const incomingCallUI = document.getElementById('incoming-call-ui');
     if (incomingCallUI) {
         incomingCallUI.remove();
     }
 }
+```
