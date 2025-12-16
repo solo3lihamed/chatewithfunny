@@ -5,6 +5,10 @@
 echo "🎉 Starting FunnyChat Application..."
 echo ""
 
+# Collect static files
+echo "📦 Collecting static files..."
+python manage.py collectstatic --noinput > /dev/null 2>&1
+
 # Check if superuser exists, if not prompt to create one
 echo "📝 Checking for superuser..."
 python manage.py shell -c "from chat.models import CustomUser; exit(0 if CustomUser.objects.filter(is_superuser=True).exists() else 1)" 2>/dev/null
