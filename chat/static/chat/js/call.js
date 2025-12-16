@@ -36,6 +36,11 @@ function startCall(callId) {
         .then(stream => {
             localStream = stream;
 
+            // Update UI
+            if (typeof showCallUI === 'function') {
+                showCallUI('Connecting...');
+            }
+
             // Connect to call WebSocket
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${protocol}//${window.location.host}/ws/call/${callId}/`;
@@ -44,6 +49,9 @@ function startCall(callId) {
 
             callSocket.onopen = function (e) {
                 console.log('Call WebSocket connected');
+                if (typeof showCallUI === 'function') {
+                    showCallUI('Call in progress...');
+                }
                 createPeerConnection();
                 makeOffer();
             };
@@ -60,10 +68,17 @@ function startCall(callId) {
 
             callSocket.onerror = function (e) {
                 console.error('Call WebSocket error:', e);
+                if (typeof hideCallUI === 'function') {
+                    hideCallUI();
+                }
+                alert('Call connection error');
             };
         })
         .catch(error => {
             console.error('Error accessing media devices:', error);
+            if (typeof hideCallUI === 'function') {
+                hideCallUI();
+            }
             alert('Could not access microphone. Please check permissions.');
         });
 }
@@ -207,6 +222,11 @@ function endCall() {
 
     // Remove remote audio elements
     document.querySelectorAll('audio').forEach(audio => audio.remove());
+
+    // Hide call UI
+    if (typeof hideCallUI === 'function') {
+        hideCallUI();
+    }
 
     console.log('Call ended');
 }

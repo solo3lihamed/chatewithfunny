@@ -176,8 +176,70 @@ function uploadFile(file, conversationId) {
         });
 }
 
-function initiateCall() {
-    // This will be implemented in call.js
-    console.log('Initiating call...');
-    alert('Voice call feature - WebRTC implementation in progress!');
+function initiateCall(userId) {
+    if (typeof startCall === 'function') {
+        // Create call UI
+        showCallUI('Calling...');
+
+        // Initiate call via API
+        fetch(`/call/initiate/${userId || otherUserId}/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                currentCallId = data.call_id;
+                startCall(data.call_id);
+            })
+            .catch(error => {
+                console.error('Error initiating call:', error);
+                hideCallUI();
+                alert('Failed to initiate call');
+            });
+    } else {
+        alert('📞 Voice call feature is ready! Make sure call.js is loaded.');
+    }
 }
+
+function showCallUI(status) {
+    let callUI = document.getElementById('call-ui');
+    if (!callUI) {
+        callUI = document.createElement('div');
+        callUI.id = 'call-ui';
+        callUI.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            text-align: center;
+            min-width: 300px;
+        `;
+        document.body.appendChild(callUI);
+    }
+
+    callUI.innerHTML = `
+        <div style="color: white;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📞</div>
+            <h3 style="margin: 0 0 1rem 0;">${status}</h3>
+            <button onclick="endCall()" class="btn btn-danger" style="margin-top: 1rem;">
+                End Call
+            </button>
+        </div>
+    `;
+    callUI.style.display = 'block';
+}
+
+function hideCallUI() {
+    const callUI = document.getElementById('call-ui');
+    if (callUI) {
+        callUI.style.display = 'none';
+    }
+}
+
