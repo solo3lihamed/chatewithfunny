@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link rel="stylesheet" href="{% static 'chat/css/style.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     {% if user.is_authenticated %}
     <nav class="navbar">
@@ -21,7 +23,7 @@
         </ul>
     </nav>
     {% endif %}
-    
+
     <div class="container">
         {% if messages %}
         <div class="messages">
@@ -32,10 +34,81 @@
             {% endfor %}
         </div>
         {% endif %}
-        
+
         {% block content %}{% endblock %}
     </div>
-    
+
+    {% if user.is_authenticated %}
+    <script>
+        // Global notification WebSocket for incoming calls
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const notificationSocket = new WebSocket(`${protocol}//${window.location.host}/ws/notifications/`);
+
+        notificationSocket.onopen = function (e) {
+            console.log('Notification WebSocket connected');
+        };
+
+        notificationSocket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+
+            if (data.type === 'incoming_call') {
+                showIncomingCallNotification(data);
+            }
+        };
+
+        notificationSocket.onclose = function (e) {
+            console.log('Notification WebSocket disconnected');
+            // Reconnect after 3 seconds
+            setTimeout(() => {
+                location.reload();
+            }, 3000);
+        };
+
+        function showIncomingCallNotification(data) {
+            // Remove any existing incoming call UI
+            const existing = document.getElementById('incoming-call-ui');
+            if (existing) existing.remove();
+
+            // Show incoming call UI
+            const callUI = document.createElement('div');
+            callUI.id = 'incoming-call-ui';
+            callUI.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: linear-gradient(135deg, #00d9a3 0%, #00b894 100%);
+                padding: 2rem;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+                z-index: 9999;
+                text-align: center;
+                min-width: 300px;
+                animation: popIn 0.3s ease;
+            `;
+
+            callUI.innerHTML = `
+                <div style="color: white;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem; animation: bounce 1s ease infinite;">📞</div>
+                    <h3 style="margin: 0 0 0.5rem 0;">${data.caller_username}</h3>
+                    <p style="margin: 0 0 1.5rem 0; opacity: 0.9;">is calling you...</p>
+                    <div style="display: flex; gap: 1rem; justify-content: center;">
+                        <a href="/chat/${data.conversation_id}/" class="btn btn-success" style="flex: 1; text-decoration: none;">
+                            ✅ Accept
+                        </a>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="btn btn-danger" style="flex: 1;">
+                            ❌ Reject
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(callUI);
+        }
+    </script>
+    {% endif %}
+
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

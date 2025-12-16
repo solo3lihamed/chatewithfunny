@@ -4,6 +4,48 @@ from channels.db import database_sync_to_async
 from django.utils import timezone
 
 
+class UserNotificationConsumer(AsyncWebsocketConsumer):
+    """WebSocket consumer for user-specific notifications"""
+    
+    async def connect(self):
+        self.user = self.scope['user']
+        
+        if self.user.is_authenticated:
+            # Create user-specific room
+            self.room_group_name = f'user_{self.user.id}'
+            
+            # Join user's personal notification room
+            await self.channel_layer.group_add(
+                self.room_group_name,
+                self.channel_name
+            )
+            
+            await self.accept()
+        else:
+            await self.close()
+    
+    async def disconnect(self, close_code):
+        if hasattr(self, 'room_group_name'):
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
+    
+    async def receive(self, text_data):
+        # Handle any incoming messages if needed
+        pass
+    
+    async def incoming_call_notification(self, event):
+        """Send incoming call notification to user"""
+        await self.send(text_data=json.dumps({
+            'type': 'incoming_call',
+            'call_id': event['call_id'],
+            'caller_id': event['caller_id'],
+            'caller_username': event['caller_username'],
+            'conversation_id': event.get('conversation_id')
+        }))
+
+
 class ChatConsumer(AsyncWebsocketConsumer):
     """WebSocket consumer for real-time chat messaging"""
     
@@ -106,14 +148,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
         
         elif message_type == 'incoming_call':
-            # Notify about incoming call
+            # Get receiver ID and send notification to their personal room
+            receiver_id = await self.get_other_user_id()
+            
             await self.channel_layer.group_send(
-                self.room_group_name,
+                f'user_{receiver_id}',
                 {
                     'type': 'incoming_call_notification',
                     'call_id': data.get('call_id'),
                     'caller_id': self.user.id,
-                    'caller_username': self.user.username
+                    'caller_username': self.user.username,
+                    'conversation_id': self.conversation_id
                 }
             )
     
@@ -155,16 +200,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'reader_id': event['reader_id']
         }))
     
-    async def incoming_call_notification(self, event):
-        # Send incoming call notification
-        if event['caller_id'] != self.user.id:
-            await self.send(text_data=json.dumps({
-                'type': 'incoming_call',
-                'call_id': event['call_id'],
-                'caller_id': event['caller_id'],
-                'caller_username': event['caller_username']
-            }))
-    
     @database_sync_to_async
     def save_message(self, content):
         from .models import Message, Conversation
@@ -193,6 +228,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         user = CustomUser.objects.get(id=self.user.id)
         user.is_online = is_online
         user.save()
+    
+    @database_sync_to_async
+    def get_other_user_id(self):
+        from .models import Conversation
+        conversation = Conversation.objects.get(id=self.conversation_id)
+        other_user = conversation.get_other_participant(self.user)
+        return other_user.id
 
 
 class CallConsumer(AsyncWebsocketConsumer):
