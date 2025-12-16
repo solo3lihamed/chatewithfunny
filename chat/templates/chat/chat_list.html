@@ -1,0 +1,57 @@
+{% extends 'chat/base.html' %}
+
+{% block title %}Chats - FunnyChat{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="margin-bottom: 2rem; font-family: 'Fredoka', sans-serif;">
+        💬 Your Conversations
+    </h2>
+
+    {% if conversation_data %}
+    <div style="display: grid; gap: 1rem;">
+        {% for data in conversation_data %}
+        <a href="{% url 'chat_room' data.conversation.id %}" style="text-decoration: none; color: inherit;">
+            <div class="card"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; transition: all 0.3s ease;">
+                <div style="display: flex; align-items: center; gap: 1rem; flex: 1;">
+                    <span
+                        class="status-indicator {% if data.other_user.is_online %}status-online{% else %}status-offline{% endif %}"></span>
+                    {% if data.other_user.avatar %}
+                    <img src="{{ data.other_user.avatar.url }}" alt="Avatar" class="avatar">
+                    {% else %}
+                    <div class="avatar"
+                        style="display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                        {{ data.other_user.username.0|upper }}
+                    </div>
+                    {% endif %}
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0;">{{ data.other_user.username }}</h4>
+                        {% if data.last_message %}
+                        <p
+                            style="margin: 0; color: var(--text-muted); font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ data.last_message.content|truncatewords:10 }}
+                        </p>
+                        {% else %}
+                        <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">No messages yet</p>
+                        {% endif %}
+                    </div>
+                    {% if data.unread_count > 0 %}
+                    <span
+                        style="background: var(--gradient-fun); color: white; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+                        {{ data.unread_count }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="text-align: center; color: var(--text-muted); padding: 2rem;">
+        😢 No conversations yet. <a href="{% url 'friends_list' %}" style="color: var(--primary);">Start chatting with
+            your friends!</a>
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends 'chat/base.html' %}
+
+{% block title %}Friends - FunnyChat{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="margin-bottom: 2rem; font-family: 'Fredoka', sans-serif;">
+        👥 Your Friends
+    </h2>
+
+    {% if pending_requests %}
+    <div style="margin-bottom: 2rem;">
+        <h3 style="color: var(--warning); margin-bottom: 1rem;">⏳ Pending Requests</h3>
+        <div style="display: grid; gap: 1rem;">
+            {% for request in pending_requests %}
+            <div class="card"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 1rem;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    {% if request.sender.avatar %}
+                    <img src="{{ request.sender.avatar.url }}" alt="Avatar" class="avatar">
+                    {% else %}
+                    <div class="avatar"
+                        style="display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                        {{ request.sender.username.0|upper }}
+                    </div>
+                    {% endif %}
+                    <div>
+                        <h4 style="margin: 0;">{{ request.sender.username }}</h4>
+                        <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">wants to be friends</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <form method="post" action="{% url 'accept_friend_request' request.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success">✅ Accept</button>
+                    </form>
+                    <form method="post" action="{% url 'reject_friend_request' request.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">❌ Reject</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if friends %}
+    <div style="display: grid; gap: 1rem;">
+        {% for friend in friends %}
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <span
+                    class="status-indicator {% if friend.is_online %}status-online{% else %}status-offline{% endif %}"></span>
+                {% if friend.avatar %}
+                <img src="{{ friend.avatar.url }}" alt="Avatar" class="avatar">
+                {% else %}
+                <div class="avatar"
+                    style="display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    {{ friend.username.0|upper }}
+                </div>
+                {% endif %}
+                <div>
+                    <h4 style="margin: 0;">{{ friend.username }}</h4>
+                    <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
+                        {% if friend.is_online %}Online{% else %}Offline{% endif %}
+                    </p>
+                </div>
+            </div>
+            <a href="{% url 'start_conversation' friend.id %}" class="btn btn-primary">💬 Chat</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="text-align: center; color: var(--text-muted); padding: 2rem;">
+        😢 You don't have any friends yet. <a href="{% url 'search_users' %}" style="color: var(--primary);">Find
+            some!</a>
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

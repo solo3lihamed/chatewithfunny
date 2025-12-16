@@ -1,0 +1,54 @@
+{% extends 'chat/base.html' %}
+
+{% block title %}Search Users - FunnyChat{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="margin-bottom: 2rem; font-family: 'Fredoka', sans-serif;">
+        🔍 Find New Friends
+    </h2>
+
+    <form method="get" style="margin-bottom: 2rem;">
+        <div style="display: flex; gap: 1rem;">
+            <input type="text" name="q" class="form-control" placeholder="Search by username or email..."
+                value="{{ query }}" style="margin-bottom: 0;">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </div>
+    </form>
+
+    {% if users %}
+    <div style="display: grid; gap: 1rem;">
+        {% for user_obj in users %}
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                {% if user_obj.avatar %}
+                <img src="{{ user_obj.avatar.url }}" alt="Avatar" class="avatar">
+                {% else %}
+                <div class="avatar"
+                    style="display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    {{ user_obj.username.0|upper }}
+                </div>
+                {% endif %}
+                <div>
+                    <h4 style="margin: 0;">{{ user_obj.username }}</h4>
+                    <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">{{ user_obj.email }}</p>
+                </div>
+            </div>
+            <form method="post" action="{% url 'send_friend_request' user_obj.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">➕ Add Friend</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% elif query %}
+    <p style="text-align: center; color: var(--text-muted); padding: 2rem;">
+        😢 No users found matching "{{ query }}"
+    </p>
+    {% else %}
+    <p style="text-align: center; color: var(--text-muted); padding: 2rem;">
+        🎯 Start searching to find new friends!
+    </p>
+    {% endif %}
+</div>
+{% endblock %}
